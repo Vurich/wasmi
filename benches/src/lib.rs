@@ -25,6 +25,25 @@ const REVCOMP_INPUT: &'static [u8] = include_bytes!("./revcomp-input.txt");
 const REVCOMP_OUTPUT: &'static [u8] = include_bytes!("./revcomp-output.txt");
 
 #[bench]
+fn bench_simple_fib(b: &mut Bencher) {
+	let wasm_kernel = load_from_file(
+		"./fib.wasm",
+	).expect("failed to load wasm_kernel. Is `build.rs` broken?");
+
+	let instance = ModuleInstance::new(&wasm_kernel, &ImportsBuilder::default())
+		.expect("failed to instantiate wasm module")
+		.assert_no_start();
+
+	let value = test::black_box(20);
+
+	b.iter(|| {
+		instance
+			.invoke_export("fib", &[value], &mut NopExternals)
+			.unwrap();
+	});
+}
+
+#[bench]
 fn bench_tiny_keccak(b: &mut Bencher) {
 	let wasm_kernel = load_from_file(
 		"./wasm-kernel/target/wasm32-unknown-unknown/release/wasm_kernel.wasm",
